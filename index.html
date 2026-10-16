@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LudoMédico: Carrera por la Salud</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1e0826 0%, #4a2163 40%, #e879f9 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        /* Perspective and 3D effect for Ludo Board */
+        .board-container {
+            perspective: 1200px;
+        }
+        
+        .board-grid {
+            box-shadow: 0 20px 50px rgba(236, 72, 153, 0.3);
+            border: none !important;
+            background: #fff0f6 !important;
+            transition: transform 0.3s ease;
+        }
+
+        /* 3D Rolling Cube CSS */
+        .dice-scene {
+            width: 70px;
+            height: 70px;
+            perspective: 600px;
+        }
+
+        .dice-cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.2, 0.85, 0.32, 1.2);
+        }
+
+        .dice-face {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #ffffff 0%, #ffe4e6 100%);
+            border: none !important;
+            border-radius: 18px;
+            box-shadow: inset 0 0 10px rgba(244, 114, 182, 0.2), 0 4px 10px rgba(0,0,0,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            color: #db2777;
+            font-weight: 900;
+        }
+
+        .face-1 { transform: rotateY(0deg) translateZ(35px); }
+        .face-2 { transform: rotateY(90deg) translateZ(35px); }
+        .face-3 { transform: rotateY(180deg) translateZ(35px); }
+        .face-4 { transform: rotateY(-90deg) translateZ(35px); }
+        .face-5 { transform: rotateX(90deg) translateZ(35px); }
+        .face-6 { transform: rotateX(-90deg) translateZ(35px); }
+
+        .pulse-glow {
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { box-shadow: 0 0 0 0px rgba(244, 114, 182, 0.8); }
+            70% { box-shadow: 0 0 0 18px rgba(244, 114, 182, 0); }
+            100% { box-shadow: 0 0 0 0px rgba(244, 114, 182, 0); }
+        }
+
+        /* Custom Scrollbar Cute */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fbcfe8;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ec4899;
+            border-radius: 4px;
+        }
+
+        .player-token {
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(0 6px 12px rgba(219, 39, 119, 0.5));
+            animation: floatToken 2.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes floatToken {
+            0% { transform: translateY(0px) scale(1); }
+            100% { transform: translateY(-5px) scale(1.1); }
+        }
+
+        .player-token:hover {
+            transform: scale(1.4) translateY(-10px) !important;
+            z-index: 50;
+        }
+
+        .glass-panel-card {
+            background: rgba(255, 241, 245, 0.96);
+            backdrop-filter: blur(14px);
+            border: none !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Borderless vibrant board tile styles */
+        .tile-path {
+            background: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 2px 5px rgba(244, 114, 182, 0.15);
+        }
+
+        .tile-path:nth-child(odd) {
+            background: #fff5f8 !important;
+        }
+
+        .tile-corner-pink {
+            background: linear-gradient(135deg, #fbcfe8 0%, #f472b6 100%) !important;
+            border: none !important;
+            box-shadow: 0 4px 10px rgba(219, 39, 119, 0.25);
+        }
+
+        .tile-corner-purple {
+            background: linear-gradient(135deg, #e9d5ff 0%, #c084fc 100%) !important;
+            border: none !important;
+            box-shadow: 0 4px 10px rgba(147, 51, 234, 0.25);
+        }
+
+        .tile-corner-amber {
+            background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%) !important;
+            border: none !important;
+            box-shadow: 0 4px 10px rgba(217, 119, 6, 0.25);
+        }
+
+        .tile-corner-teal {
+            background: linear-gradient(135deg, #ccfbf1 0%, #2dd4bf 100%) !important;
+            border: none !important;
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25);
+        }
+
+        /* Cute outlined badge specifically for tile icons */
+        .tile-icon-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            border: 2px solid currentColor;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+            background: rgba(255, 255, 255, 0.95);
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4 flex flex-col items-center justify-between min-h-screen">
+
+    <header class="w-full max-w-6xl flex flex-wrap justify-between items-center bg-white/20 backdrop-blur-md p-3 sm:p-4 rounded-3xl shadow-xl mb-4 border-none">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-tr from-pink-400 via-rose-400 to-purple-500 p-3.5 rounded-2xl text-white shadow-lg shadow-pink-500/30 transform hover:rotate-6 transition">
+                <i class="fa-solid fa-heart-pulse text-2xl sm:text-3xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-black bg-gradient-to-r from-pink-200 via-pink-100 to-amber-200 bg-clip-text text-transparent drop-shadow-sm">
+                    LudoMédico ✨ Anatomía
+                </h1>
+                <p class="text-xs text-pink-100 font-bold tracking-wider">Edición Girl Aesthetic ✨ Carrera de Salud</p>
+            </div>
+        </div>
+
+        <!-- Controls / Actions -->
+        <div class="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-0">
+            <button id="btn-sound" onclick="toggleSound()" class="p-2.5 bg-white/20 hover:bg-white/30 rounded-2xl transition text-white border-none shadow-md">
+                <i id="sound-icon" class="fa-solid fa-volume-high text-lg"></i>
+            </button>
+            <button onclick="openRulesModal()" class="px-4 py-2 bg-pink-500/40 hover:bg-pink-500/60 text-white rounded-2xl font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-lg border-none">
+                <i class="fa-solid fa-sparkles"></i> Reglas
+            </button>
+            <button onclick="resetGame()" class="px-4 py-2 bg-rose-500/40 hover:bg-rose-500/60 text-white rounded-2xl font-bold text-xs sm:text-sm transition flex items-center gap-2 border-none shadow-md">
+                <i class="fa-solid fa-rotate-right"></i> Reiniciar
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-start my-auto">
+        
+        <section class="lg:col-span-4 flex flex-col gap-4 order-2 lg:order-1">
+            
+            <!-- Current Turn Box -->
+            <div id="turn-card" class="glass-panel-card p-5 rounded-3xl shadow-xl relative overflow-hidden text-slate-800">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs uppercase tracking-wider text-pink-600 font-black">✨ Turno Actual ✨</span>
+                    <span id="turn-badge" class="px-3 py-1 bg-pink-500 text-white rounded-full text-xs font-black shadow">
+                        Jugador 1
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-4 mb-4">
+                    <div id="player-avatar" class="w-16 h-16 rounded-2xl bg-pink-100 flex items-center justify-center text-4xl shadow-md text-pink-500">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                    <div>
+                        <h2 id="player-name" class="text-xl font-black text-pink-950">Dra. Corazón</h2>
+                        <p id="player-role" class="text-xs text-pink-600 font-bold">Especialidad: Cardiología</p>
+                    </div>
+                </div>
+
+                <!-- 3D Animated Dice Area -->
+                <div class="bg-gradient-to-r from-pink-100 to-rose-100 rounded-2xl p-4 flex items-center justify-between shadow-inner">
+                    
+                    <!-- 3D Dice Component -->
+                    <div class="dice-scene">
+                        <div id="dice-cube" class="dice-cube">
+                            <div class="dice-face face-1"><i class="fa-solid fa-dice-one"></i></div>
+                            <div class="dice-face face-2"><i class="fa-solid fa-dice-two"></i></div>
+                            <div class="dice-face face-3"><i class="fa-solid fa-dice-three"></i></div>
+                            <div class="dice-face face-4"><i class="fa-solid fa-dice-four"></i></div>
+                            <div class="dice-face face-5"><i class="fa-solid fa-dice-five"></i></div>
+                            <div class="dice-face face-6"><i class="fa-solid fa-dice-six"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col justify-center items-start ml-2">
+                        <p id="dice-status" class="text-xs text-pink-700 font-bold">¡Lanza el dado 3D!</p>
+                        <p id="dice-result-text" class="text-sm font-black text-pink-900">¡Lista para avanzar!</p>
+                    </div>
+
+                    <button id="btn-roll" onclick="rollDice()" class="pulse-glow px-5 py-3.5 bg-gradient-to-r from-pink-500 via-purple-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white font-black text-sm rounded-2xl shadow-lg shadow-pink-500/30 transition transform active:scale-95 flex items-center gap-2">
+                        <i class="fa-solid fa-dice text-xl animate-spin"></i> Lanzar
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-panel-card p-5 rounded-3xl shadow-xl text-slate-800">
+                <h3 class="text-xs font-black uppercase tracking-wider text-pink-700 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-heart text-pink-500"></i> Cuadro de Médicas & Médicos
+                </h3>
+                <div id="players-list" class="space-y-2.5">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Quiz Specialty Info -->
+            <div class="glass-panel-card p-4 rounded-3xl bg-gradient-to-b from-pink-100/90 via-purple-50/90 to-rose-100/90 text-slate-800 shadow-md">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-black text-pink-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bone text-pink-500"></i> Trivias de Anatomía Humana
+                    </span>
+                    <span class="text-[10px] bg-pink-200 text-pink-800 px-2 py-0.5 rounded-full font-bold">100% Offline</span>
+                </div>
+                <p class="text-xs text-slate-600 font-medium leading-relaxed">
+                    Caerás en casillas mágicas que te pondrán a prueba con preguntas sobre huesos, músculos, órganos y sistema nervioso.
+                </p>
+            </div>
+        </section>
+
+        <!-- Board Display -->
+        <section class="lg:col-span-8 flex justify-center items-center order-1 lg:order-2">
+            <div class="board-container w-full max-w-[580px] aspect-square">
+                <!-- Board Grid (11x11 Grid Layout) -->
+                <div id="ludo-board" class="board-grid w-full h-full rounded-3xl p-2 sm:p-3 grid grid-cols-11 grid-rows-11 gap-1.5 relative overflow-hidden">
+                    <!-- Dynamic Grid Rendering -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="modal-quiz" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-panel-card max-w-lg w-full rounded-3xl p-6 shadow-2xl relative animate-fade-in text-slate-800">
+            <div class="flex items-center justify-between pb-3 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="p-2.5 bg-pink-100 text-pink-600 rounded-2xl text-xl shadow-sm">
+                        <i class="fa-solid fa-brain"></i>
+                    </span>
+                    <h3 id="quiz-title" class="text-lg font-black text-pink-950">Desafío de Anatomía Humana</h3>
+                </div>
+                <span id="quiz-category" class="px-3 py-1 bg-pink-100 text-pink-700 text-xs rounded-full font-black shadow-sm">Anatomía</span>
+            </div>
+
+            <div id="quiz-content">
+                <p id="quiz-question" class="text-sm sm:text-base text-slate-800 mb-5 font-bold leading-relaxed bg-pink-50/90 p-4 rounded-2xl shadow-sm">
+                    Cargando pregunta de anatomía...
+                </p>
+
+                <div id="quiz-options" class="space-y-2.5 mb-5">
+                    <!-- Dynamic Answer Buttons -->
+                </div>
+
+                <div id="quiz-feedback" class="hidden p-3.5 rounded-2xl mb-4 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-sm">
+                    <!-- Feedback Text -->
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button id="btn-quiz-close" onclick="closeQuizModal()" class="hidden px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white text-sm font-black rounded-2xl shadow-md transition">
+                    Continuar Carrera ✨
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div id="modal-rules" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-panel-card max-w-xl w-full rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-800">
+            <div class="flex items-center justify-between pb-3 mb-4">
+                <h3 class="text-lg font-black text-pink-950 flex items-center gap-2">
+                    <i class="fa-solid fa-sparkles text-pink-500"></i> Reglas de LudoMédico Girl Edition
+                </h3>
+                <button onclick="closeRulesModal()" class="text-pink-400 hover:text-pink-700 p-1">
+                    <i class="fa-solid fa-xmark text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs sm:text-sm text-slate-700 font-medium">
+                <div class="bg-pink-50/90 p-4 rounded-2xl shadow-sm">
+                    <h4 class="font-black text-pink-900 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-flag-checkered text-pink-500"></i> Objetivo del Juego
+                    </h4>
+                    <p>Ser la primera especialista en completar el circuito del hospital con su super ficha y llegar al **Centro Médico Principal**.</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="bg-amber-50/90 p-3 rounded-2xl shadow-sm">
+                        <h5 class="font-black text-amber-800 mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Casilla Emergencia</h5>
+                        <p class="text-slate-600">Pregunta rápida de anatomía. Si la respondes mal, retrocedes 1 casilla.</p>
+                    </div>
+                    <div class="bg-emerald-50/90 p-3 rounded-2xl shadow-sm">
+                        <h5 class="font-black text-emerald-800 mb-1"><i class="fa-solid fa-prescription-bottle-medical"></i> Casilla Farmacia</h5>
+                        <p class="text-slate-600">¡Bono de energía médica! Avanzas +2 casillas extra inmediatamente.</p>
+                    </div>
+                    <div class="bg-cyan-50/90 p-3 rounded-2xl shadow-sm">
+                        <h5 class="font-black text-cyan-800 mb-1"><i class="fa-solid fa-microscope"></i> Casilla Diagnóstico</h5>
+                        <p class="text-slate-600">Una pregunta de anatomía clave. ¡Si respondes bien, avanzas +1 casilla extra!</p>
+                    </div>
+                    <div class="bg-rose-50/90 p-3 rounded-2xl shadow-sm">
+                        <h5 class="font-black text-rose-800 mb-1"><i class="fa-solid fa-virus"></i> Brote Epidémico</h5>
+                        <p class="text-slate-600">Retrocedes 3 casillas para aislamiento preventivo.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeRulesModal()" class="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black rounded-2xl text-xs sm:text-sm shadow-md">
+                    ¡Entendido, a jugar! ✨
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Audio Synthesizer setup (Offline sound effects)
+        let soundEnabled = true;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-lg';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-lg';
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+
+                if (type === 'roll') {
+                    // Dice rolling sound effect
+                    for (let i = 0; i < 6; i++) {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(150 + Math.random() * 200, now + i * 0.08);
+                        gain.gain.setValueAtTime(0.15, now + i * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.06);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + i * 0.08);
+                        osc.stop(now + i * 0.08 + 0.07);
+                    }
+                } else if (type === 'step') {
+                    // Token move sound effect
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.1); // A5
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'correct') {
+                    // Happy chime for correct answer
+                    const freqs = [523.25, 659.25, 783.99, 1046.50]; // C, E, G, C
+                    freqs.forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.25);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.3);
+                    });
+                } else if (type === 'wrong') {
+                    // Sad tone for wrong answer
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(130, now + 0.3);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                }
+            } catch (e) {
+                console.log("Audio not allowed yet:", e);
+            }
+        }
+
+        // Medical Players Definition
+        const PLAYERS = [
+            { 
+                id: 0, 
+                name: "Dra. Corazón", 
+                role: "Cardiología", 
+                color: "pink", 
+                bgClass: "bg-gradient-to-tr from-pink-500 to-rose-400", 
+                cardBgClass: "bg-pink-100/90 hover:bg-pink-100",
+                badgeClass: "bg-pink-200 text-pink-700",
+                progressClass: "bg-gradient-to-r from-pink-400 to-rose-500",
+                textClass: "text-pink-600", 
+                lightBg: "bg-pink-200/80", 
+                icon: "fa-heart-pulse", 
+                iconColor: "text-pink-600",
+                pos: 0 
+            },
+            { 
+                id: 1, 
+                name: "Dra. Neurona", 
+                role: "Neurología", 
+                color: "purple", 
+                bgClass: "bg-gradient-to-tr from-purple-500 to-indigo-400", 
+                cardBgClass: "bg-purple-100/90 hover:bg-purple-100",
+                badgeClass: "bg-purple-200 text-purple-700",
+                progressClass: "bg-gradient-to-r from-purple-400 to-indigo-500",
+                textClass: "text-purple-600", 
+                lightBg: "bg-purple-200/80", 
+                icon: "fa-brain", 
+                iconColor: "text-purple-600",
+                pos: 0 
+            },
+            { 
+                id: 2, 
+                name: "Dra. Sonrisa", 
+                role: "Pediatría", 
+                color: "amber", 
+                bgClass: "bg-gradient-to-tr from-amber-400 to-pink-400", 
+                cardBgClass: "bg-amber-100/90 hover:bg-amber-100",
+                badgeClass: "bg-amber-200 text-amber-800",
+                progressClass: "bg-gradient-to-r from-amber-400 to-rose-400",
+                textClass: "text-amber-600", 
+                lightBg: "bg-amber-200/80", 
+                icon: "fa-child-reaching", 
+                iconColor: "text-amber-600",
+                pos: 0 
+            },
+            { 
+                id: 3, 
+                name: "Dra. Hueso", 
+                role: "Traumatología", 
+                color: "teal", 
+                bgClass: "bg-gradient-to-tr from-teal-400 to-emerald-400", 
+                cardBgClass: "bg-teal-100/90 hover:bg-teal-100",
+                badgeClass: "bg-teal-200 text-teal-800",
+                progressClass: "bg-gradient-to-r from-teal-400 to-emerald-500",
+                textClass: "text-teal-600", 
+                lightBg: "bg-teal-200/80", 
+                icon: "fa-bone", 
+                iconColor: "text-teal-600",
+                pos: 0 
+            }
+        ];
+
+        let currentTurn = 0;
+        let isRolling = false;
+
+        // Anatomical Question Bank
+        const ANATOMY_QUESTIONS = [
+            {
+                title: "Desafío de Osteología",
+                question: "¿Cuál es el hueso más largo y fuerte del cuerpo humano?",
+                options: [
+                    { text: "Fémur", correct: true },
+                    { text: "Húmero", correct: false },
+                    { text: "Tibia", correct: false },
+                    { text: "Radio", correct: false }
+                ]
+            },
+            {
+                title: "Desafío de Cardiología",
+                question: "¿Cuántas cavidades tiene el corazón humano?",
+                options: [
+                    { text: "2 cavidades", correct: false },
+                    { text: "4 cavidades (2 aurículas y 2 ventrículos)", correct: true },
+                    { text: "3 cavidades", correct: false },
+                    { text: "6 cavidades", correct: false }
+                ]
+            },
+            {
+                title: "Desafío de Miología",
+                question: "¿Cuál es el músculo responsable del bombeo constante de sangre?",
+                options: [
+                    { text: "Bíceps", correct: false },
+                    { text: "Miocardio (Músculo Cardíaco)", correct: true },
+                    { text: "Diafragma", correct: false },
+                    { text: "Cuádriceps", correct: false }
+                ]
+            },
+            {
+                title: "Desafío de Neuroanatomía",
+                question: "¿Qué órgano del sistema nervioso central controla el equilibrio y la coordinación motora?",
+                options: [
+                    { text: "Cerebelo", correct: true },
+                    { text: "Bulbo raquídeo", correct: false },
+                    { text: "Hipotálamo", correct: false },
+                    { text: "Médula espinal", correct: false }
+                ]
+            },
+            {
+                title: "Desafío de Neumología",
+                question: "¿En qué estructuras microscópicas de los pulmones se realiza el intercambio gaseoso?",
+                options: [
+                    { text: "Bronquios", correct: false },
+                    { text: "Alvéolos pulmonares", correct: true },
+                    { text: "Traquea", correct: false },
+                    { text: "Pleura", correct: false }
+                ]
+            }
+        ];
+
+        // Map circuit paths (Cell IDs in the 11x11 grid)
+        const BOARD_PATH = [
+            {r: 10, c: 4}, {r: 9, c: 4}, {r: 8, c: 4}, {r: 7, c: 4}, {r: 6, c: 4},
+            {r: 6, c: 3}, {r: 6, c: 2}, {r: 6, c: 1}, {r: 6, c: 0},
+            {r: 5, c: 0},
+            {r: 4, c: 0}, {r: 4, c: 1}, {r: 4, c: 2}, {r: 4, c: 3}, {r: 4, c: 4},
+            {r: 3, c: 4}, {r: 2, c: 4}, {r: 1, c: 4}, {r: 0, c: 4},
+            {r: 0, c: 5},
+            {r: 0, c: 6}, {r: 1, c: 6}, {r: 2, c: 6}, {r: 3, c: 6}, {r: 4, c: 6},
+            {r: 4, c: 7}, {r: 4, c: 8}, {r: 4, c: 9}, {r: 4, c: 10},
+            {r: 5, c: 10},
+        ];
+
+        function rollDice() {
+            if (isRolling) return;
+            isRolling = true;
+
+            const btnRoll = document.getElementById('btn-roll');
+            btnRoll.disabled = true;
+
+            playSound('roll');
+
+            const diceCube = document.getElementById('dice-cube');
+            const resultValue = Math.floor(Math.random() * 6) + 1;
+
+            // Target 3D rotations for dice faces
+            const rotations = {
+                1: { x: 0, y: 0 },
+                2: { x: 0, y: -90 },
+                3: { x: 0, y: -180 },
+                4: { x: 0, y: 90 },
+                5: { x: -90, y: 0 },
+                6: { x: 90, y: 0 }
+            };
+
+            const targetRot = rotations[resultValue];
+            const extraX = 360 * 3; // 3 full extra spins
+            const extraY = 360 * 3;
+
+            diceCube.style.transform = `rotateX(${targetRot.x + extraX}deg) rotateY(${targetRot.y + extraY}deg)`;
+
+            document.getElementById('dice-status').innerText = "¡El dado está girando! 🎲";
+
+            setTimeout(() => {
+                document.getElementById('dice-status').innerText = `¡Obtuviste un ${resultValue}! ✨`;
+                document.getElementById('dice-result-text').innerText = `Avanzando ${resultValue} casillas...`;
+                
+                movePlayer(resultValue);
+            }, 1250);
+        }
+
+        function movePlayer(steps) {
+            let player = PLAYERS[currentTurn];
+            let targetPos = Math.min(player.pos + steps, BOARD_PATH.length - 1);
+            let currentStep = player.pos;
+
+            const stepInterval = setInterval(() => {
+                if (currentStep < targetPos) {
+                    currentStep++;
+                    player.pos = currentStep;
+                    playSound('step');
+                    renderPlayersOnBoard();
+                    updatePlayersUI();
+                } else {
+                    clearInterval(stepInterval);
+                    checkSpecialTile(player.pos);
+                }
+            }, 300);
+        }
+
+        function checkSpecialTile(pos) {
+            const btnRoll = document.getElementById('btn-roll');
+            
+            // Check if player reached the hospital winning goal
+            if (pos >= BOARD_PATH.length - 1) {
+                playSound('correct');
+                setTimeout(() => {
+                    alert(`🎉 ¡Felicidades! ${PLAYERS[currentTurn].name} ha llegado al Centro Médico Principal y ganado la Carrera por la Salud. 🏥✨`);
+                    resetGame();
+                }, 400);
+                return;
+            }
+
+            // Special tiles logic
+            if (pos === 5 || pos === 16) {
+                // Emergency or Diagnosis Question Tile
+                const randomQuiz = ANATOMY_QUESTIONS[Math.floor(Math.random() * ANATOMY_QUESTIONS.length)];
+                triggerMedicalQuiz(randomQuiz.title, randomQuiz.question, randomQuiz.options);
+                return;
+            } else if (pos === 10) {
+                // Pharmacy +2 Bonus
+                document.getElementById('dice-result-text').innerText = "¡Casilla Farmacia! Bonus +2 casillas ✨";
+                setTimeout(() => {
+                    PLAYERS[currentTurn].pos = Math.min(PLAYERS[currentTurn].pos + 2, BOARD_PATH.length - 1);
+                    renderPlayersOnBoard();
+                    updatePlayersUI();
+                    nextTurn();
+                }, 800);
+                return;
+            } else if (pos === 22) {
+                // Outbreak -3 Penalty
+                document.getElementById('dice-result-text').innerText = "¡Brote Epidémico! Aislamiento -3 casillas 😷";
+                setTimeout(() => {
+                    PLAYERS[currentTurn].pos = Math.max(PLAYERS[currentTurn].pos - 3, 0);
+                    renderPlayersOnBoard();
+                    updatePlayersUI();
+                    nextTurn();
+                }, 800);
+                return;
+            }
+
+            nextTurn();
+        }
+
+        function nextTurn() {
+            currentTurn = (currentTurn + 1) % PLAYERS.length;
+            isRolling = false;
+            
+            const btnRoll = document.getElementById('btn-roll');
+            btnRoll.disabled = false;
+
+            // Reset dice rotation CSS for smooth next roll
+            const diceCube = document.getElementById('dice-cube');
+            diceCube.style.transform = `rotateX(0deg) rotateY(0deg)`;
+
+            document.getElementById('dice-status').innerText = "¡Lanza el dado 3D!";
+            document.getElementById('dice-result-text').innerText = `Turno de ${PLAYERS[currentTurn].name}`;
+
+            updatePlayersUI();
+        }
+
+        function initBoard() {
+            const boardEl = document.getElementById('ludo-board');
+            boardEl.innerHTML = '';
+
+            for (let r = 0; r < 11; r++) {
+                for (let c = 0; c < 11; c++) {
+                    const cell = document.createElement('div');
+                    cell.id = `cell-${r}-${c}`;
+                    cell.className = 'w-full h-full rounded-xl flex items-center justify-center relative font-bold text-xs transition-all shadow-sm';
+
+                    // Center Hospital Hub
+                    if (r >= 4 && r <= 6 && c >= 4 && c <= 6) {
+                        if (r === 5 && c === 5) {
+                            cell.className += ' bg-gradient-to-tr from-pink-500 via-rose-400 to-purple-500 text-white shadow-lg';
+                            cell.innerHTML = '<div class="tile-icon-badge text-pink-600 border-white bg-white"><i class="fa-solid fa-hospital text-xl animate-bounce"></i></div>';
+                        } else {
+                            cell.className += ' bg-pink-200/80 text-pink-600';
+                        }
+                    } 
+                    // Corner Player Bases
+                    else if (r < 4 && c < 4) {
+                        cell.className += ' tile-corner-pink';
+                        if (r === 1 && c === 1) cell.innerHTML = '<div class="tile-icon-badge text-pink-600 border-pink-400 w-12 h-12 text-2xl shadow-md"><i class="fa-solid fa-heart-pulse"></i></div>';
+                    } else if (r < 4 && c > 6) {
+                        cell.className += ' tile-corner-purple';
+                        if (r === 1 && c === 9) cell.innerHTML = '<div class="tile-icon-badge text-purple-600 border-purple-400 w-12 h-12 text-2xl shadow-md"><i class="fa-solid fa-brain"></i></div>';
+                    } else if (r > 6 && c < 4) {
+                        cell.className += ' tile-corner-amber';
+                        if (r === 9 && c === 1) cell.innerHTML = '<div class="tile-icon-badge text-amber-600 border-amber-400 w-12 h-12 text-2xl shadow-md"><i class="fa-solid fa-child-reaching"></i></div>';
+                    } else if (r > 6 && c > 6) {
+                        cell.className += ' tile-corner-teal';
+                        if (r === 9 && c === 9) cell.innerHTML = '<div class="tile-icon-badge text-teal-600 border-teal-400 w-12 h-12 text-2xl shadow-md"><i class="fa-solid fa-bone"></i></div>';
+                    } 
+                    // Path Tiles
+                    else {
+                        cell.className += ' tile-path text-pink-700 hover:bg-pink-100';
+
+                        const pathIdx = BOARD_PATH.findIndex(p => p.r === r && p.c === c);
+                        if (pathIdx !== -1) {
+                            if (pathIdx === 0) {
+                                cell.innerHTML = '<div class="tile-icon-badge text-pink-500 border-pink-300"><i class="fa-solid fa-sparkles text-sm"></i></div>';
+                            } else if (pathIdx === 5) {
+                                cell.innerHTML = '<div class="tile-icon-badge text-amber-500 border-amber-400"><i class="fa-solid fa-triangle-exclamation text-xs"></i></div>';
+                            } else if (pathIdx === 10) {
+                                cell.innerHTML = '<div class="tile-icon-badge text-emerald-600 border-emerald-400"><i class="fa-solid fa-prescription-bottle-medical text-xs"></i></div>';
+                            } else if (pathIdx === 16) {
+                                cell.innerHTML = '<div class="tile-icon-badge text-purple-600 border-purple-400"><i class="fa-solid fa-microscope text-xs"></i></div>';
+                            } else if (pathIdx === 22) {
+                                cell.innerHTML = '<div class="tile-icon-badge text-rose-600 border-rose-400"><i class="fa-solid fa-virus text-xs"></i></div>';
+                            }
+                        }
+                    }
+
+                    boardEl.appendChild(cell);
+                }
+            }
+
+            renderPlayersOnBoard();
+            updatePlayersUI();
+        }
+
+        function renderPlayersOnBoard() {
+            document.querySelectorAll('.player-token').forEach(el => el.remove());
+
+            PLAYERS.forEach((player) => {
+                const coord = BOARD_PATH[Math.min(player.pos, BOARD_PATH.length - 1)];
+                const targetCell = document.getElementById(`cell-${coord.r}-${coord.c}`);
+
+                if (targetCell) {
+                    const token = document.createElement('div');
+                    token.id = `token-player-${player.id}`;
+                    token.className = `player-token w-9 h-9 sm:w-11 sm:h-11 rounded-2xl ${player.bgClass} flex items-center justify-center text-white text-lg sm:text-xl font-black shadow-2xl absolute z-20 cursor-pointer`;
+                    token.innerHTML = `<i class="fa-solid ${player.icon}"></i>`;
+                    
+                    const offset = player.id * 4;
+                    token.style.transform = `translate(${offset}px, ${offset}px)`;
+
+                    targetCell.appendChild(token);
+                }
+            });
+        }
+
+        function updatePlayersUI() {
+            const activePlayer = PLAYERS[currentTurn];
+            
+            document.getElementById('turn-badge').innerText = `Jugadora ${activePlayer.id + 1}`;
+            document.getElementById('turn-badge').className = `px-3 py-1 ${activePlayer.bgClass} text-white rounded-full text-xs font-black shadow`;
+            
+            document.getElementById('player-name').innerText = activePlayer.name;
+            document.getElementById('player-role').innerText = `Especialidad: ${activePlayer.role}`;
+            
+            const avatar = document.getElementById('player-avatar');
+            avatar.className = `w-16 h-16 rounded-2xl ${activePlayer.lightBg} flex items-center justify-center text-4xl shadow-inner ${activePlayer.iconColor}`;
+            avatar.innerHTML = `<i class="fa-solid ${activePlayer.icon}"></i>`;
+
+            const listEl = document.getElementById('players-list');
+            listEl.innerHTML = '';
+
+            PLAYERS.forEach((p, idx) => {
+                const isActive = idx === currentTurn;
+                const progressPct = Math.round((p.pos / (BOARD_PATH.length - 1)) * 100);
+
+                const item = document.createElement('div');
+                item.className = `p-3.5 rounded-2xl border-none flex items-center justify-between transition-all ${p.cardBgClass} ${
+                    isActive ? 'shadow-lg ring-2 ring-pink-400 scale-[1.02]' : 'shadow-sm'
+                }`;
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl ${p.lightBg} flex items-center justify-center ${p.iconColor} text-xl font-black shadow-sm">
+                            <i class="fa-solid ${p.icon}"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-black text-slate-900">${p.name}</span>
+                                <span class="text-[10px] ${p.badgeClass} px-2 py-0.5 rounded-full font-extrabold">${p.role}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-600 font-bold mt-0.5">Casilla: ${p.pos} / ${BOARD_PATH.length - 1}</div>
+                        </div>
+                    </div>
+                    <div class="w-20 bg-white/80 p-0.5 rounded-full h-3 overflow-hidden shadow-inner border-none">
+                        <div class="${p.progressClass} h-full rounded-full transition-all duration-300" style="width: ${progressPct}%"></div>
+                    </div>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        function triggerMedicalQuiz(title, questionText, options) {
+            const modal = document.getElementById('modal-quiz');
+            document.getElementById('quiz-title').innerText = title;
+            document.getElementById('quiz-category').innerText = PLAYERS[currentTurn].role;
+            document.getElementById('quiz-question').innerText = questionText;
+            
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+            
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.className = 'hidden p-3.5 rounded-2xl mb-4 text-xs sm:text-sm font-bold flex items-center gap-2';
+            document.getElementById('btn-quiz-close').classList.add('hidden');
+
+            options.forEach((opt) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-2xl bg-white hover:bg-pink-50 text-slate-800 text-xs sm:text-sm font-bold transition flex items-center justify-between group shadow-sm border-none";
+                btn.innerHTML = `
+                    <span>${opt.text}</span>
+                    <i class="fa-solid fa-chevron-right text-pink-300 group-hover:text-pink-500"></i>
+                `;
+
+                btn.onclick = () => {
+                    const allBtns = optionsContainer.querySelectorAll('button');
+                    allBtns.forEach(b => b.disabled = true);
+
+                    if (opt.correct) {
+                        playSound('correct');
+                        btn.className = "w-full text-left p-4 rounded-2xl bg-emerald-100 text-emerald-900 text-xs sm:text-sm font-black flex items-center justify-between shadow border-none";
+                        feedback.className = "p-3.5 rounded-2xl mb-4 text-xs sm:text-sm font-bold flex items-center gap-2 bg-emerald-100 text-emerald-800 border-none shadow-sm";
+                        feedback.innerHTML = '<i class="fa-solid fa-circle-check text-xl text-emerald-500"></i> ¡Excelente respuesta anatómica! Avanzas +1 casilla bonus ✨';
+                        
+                        PLAYERS[currentTurn].pos = Math.min(PLAYERS[currentTurn].pos + 1, BOARD_PATH.length - 1);
+                        renderPlayersOnBoard();
+                        updatePlayersUI();
+                    } else {
+                        playSound('wrong');
+                        btn.className = "w-full text-left p-4 rounded-2xl bg-rose-100 text-rose-900 text-xs sm:text-sm font-black flex items-center justify-between shadow border-none";
+                        feedback.className = "p-3.5 rounded-2xl mb-4 text-xs sm:text-sm font-bold flex items-center gap-2 bg-rose-100 text-rose-800 border-none shadow-sm";
+                        feedback.innerHTML = '<i class="fa-solid fa-circle-xmark text-xl text-rose-500"></i> Respuesta incorrecta. Turno finalizado.';
+                    }
+
+                    feedback.classList.remove('hidden');
+                    document.getElementById('btn-quiz-close').classList.remove('hidden');
+                };
+
+                optionsContainer.appendChild(btn);
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeQuizModal() {
+            document.getElementById('modal-quiz').classList.add('hidden');
+            nextTurn();
+        }
+
+        function openRulesModal() {
+            document.getElementById('modal-rules').classList.remove('hidden');
+        }
+
+        function closeRulesModal() {
+            document.getElementById('modal-rules').classList.add('hidden');
+        }
+
+        function resetGame() {
+            PLAYERS.forEach(p => p.pos = 0);
+            currentTurn = 0;
+            isRolling = false;
+            initBoard();
+        }
+
+        // Global function bindings to ensure HTML onclick attributes can always find them
+        window.rollDice = rollDice;
+        window.closeQuizModal = closeQuizModal;
+        window.openRulesModal = openRulesModal;
+        window.closeRulesModal = closeRulesModal;
+        window.resetGame = resetGame;
+        window.toggleSound = toggleSound;
+
+        window.onload = function() {
+            initBoard();
+        };
+    </script>
+</body>
+</html>
